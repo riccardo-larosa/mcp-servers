@@ -5,18 +5,16 @@ This module implements a Model Context Protocol (MCP) server that provides
 tools and resources for interacting with the Elastic Path Files API.
 """
 
-import os
-import json
 import asyncio
-import httpx
-from typing import Dict, List, Optional, Union, Any
-from datetime import datetime
-from pathlib import Path
+import json
+import os
+from datetime import datetime, timedelta
+from typing import Any, Dict, Optional
 
+import httpx
 from dotenv import load_dotenv
-# Import MCP SDK components
 from mcp.server.fastmcp import FastMCP
-from mcp.server.fastmcp.server import Context, ToolArgs
+from mcp.server.fastmcp.server import Context
 
 # Load environment variables
 load_dotenv()
@@ -67,35 +65,41 @@ async def get_auth_headers(user_token: Optional[str] = None) -> Dict[str, str]:
 
 
 # Resources - Read-only operations
-@mcp.resource("elastic-path://files")
+@mcp.resource(
+    "elastic-path://files?"
+    "page_limit={page_limit}&"
+    "page_offset={page_offset}&"
+    "filter_name={filter_name}&"
+    "filter_width={filter_width}&"
+    "filter_height={filter_height}&"
+    "filter_file_size={filter_file_size}"
+)
 async def list_files_resource(
+    ctx: Context,
     page_limit: int = 10, 
     page_offset: int = 0,
     filter_name: Optional[str] = None,
     filter_width: Optional[int] = None,
     filter_height: Optional[int] = None,
     filter_file_size: Optional[int] = None,
-    authorization: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     List all files with optional filtering
     
     Args:
+        ctx: MCP context
         page_limit: Number of items per page
         page_offset: Page offset
         filter_name: Filter by file name
         filter_width: Filter by width
         filter_height: Filter by height
         filter_file_size: Filter by file size
-        authorization: Optional authorization token (Bearer token)
     
     Returns:
         Dictionary with file listing data
     """
-    # Extract token from authorization header if provided
-    user_token = None
-    if authorization and authorization.startswith("Bearer "):
-        user_token = authorization.split("Bearer ")[1].strip()
+    # Get authorization from context
+    authorization = ctx.request.headers.get("authorization")
     
     # Build query parameters
     params = {}
@@ -116,7 +120,7 @@ async def list_files_resource(
     
     # Make request to Elastic Path API
     url = f"{BASE_URL}/{API_VERSION}/files"
-    headers = await get_auth_headers(user_token)
+    headers = await get_auth_headers(authorization)
     
     async with httpx.AsyncClient() as client:
         response = await client.get(url, headers=headers, params=params)
@@ -125,25 +129,26 @@ async def list_files_resource(
 
 
 @mcp.resource("elastic-path://files/{file_id}")
-async def get_file_resource(file_id: str, authorization: Optional[str] = None) -> Dict[str, Any]:
+async def get_file_resource(
+    ctx: Context,
+    file_id: str,
+) -> Dict[str, Any]:
     """
     Get a specific file by ID
     
     Args:
+        ctx: MCP context
         file_id: The ID of the file to retrieve
-        authorization: Optional authorization token (Bearer token)
     
     Returns:
         Dictionary with file data
     """
-    # Extract token from authorization header if provided
-    user_token = None
-    if authorization and authorization.startswith("Bearer "):
-        user_token = authorization.split("Bearer ")[1].strip()
+    # Get authorization from context
+    authorization = ctx.request.headers.get("authorization")
     
     # Make request to Elastic Path API
     url = f"{BASE_URL}/{API_VERSION}/files/{file_id}"
-    headers = await get_auth_headers(user_token)
+    headers = await get_auth_headers(authorization)
     
     async with httpx.AsyncClient() as client:
         response = await client.get(url, headers=headers)
@@ -188,7 +193,6 @@ async def list_files(
         filter_width=filter_width,
         filter_height=filter_height,
         filter_file_size=filter_file_size,
-        authorization=authorization
     )
     
     ctx.progress(0.9, f"Retrieved {len(result.get('data', []))} files")
@@ -220,14 +224,9 @@ async def upload_file(
     """
     ctx.progress(0.2, "Authenticating with Elastic Path API")
     
-    # Extract token from authorization header if provided
-    user_token = None
-    if authorization and authorization.startswith("Bearer "):
-        user_token = authorization.split("Bearer ")[1].strip()
-    
     # Make request to Elastic Path API
     url = f"{BASE_URL}/{API_VERSION}/files"
-    headers = await get_auth_headers(user_token)
+    headers = await get_auth_headers(authorization)
     # Remove content-type from headers as it will be set by the multipart encoder
     if "Content-Type" in headers:
         del headers["Content-Type"]
@@ -268,14 +267,9 @@ async def delete_file(
     """
     ctx.progress(0.2, "Authenticating with Elastic Path API")
     
-    # Extract token from authorization header if provided
-    user_token = None
-    if authorization and authorization.startswith("Bearer "):
-        user_token = authorization.split("Bearer ")[1].strip()
-    
     # Make request to Elastic Path API
     url = f"{BASE_URL}/{API_VERSION}/files/{file_id}"
-    headers = await get_auth_headers(user_token)
+    headers = await get_auth_headers(authorization)
     
     ctx.progress(0.5, f"Deleting file with ID: {file_id}")
     
@@ -312,14 +306,9 @@ async def download_file(
     """
     ctx.progress(0.2, "Authenticating with Elastic Path API")
     
-    # Extract token from authorization header if provided
-    user_token = None
-    if authorization and authorization.startswith("Bearer "):
-        user_token = authorization.split("Bearer ")[1].strip()
-    
     # First get the file details to get the download URL
     url = f"{BASE_URL}/{API_VERSION}/files/{file_id}"
-    headers = await get_auth_headers(user_token)
+    headers = await get_auth_headers(authorization)
     
     ctx.progress(0.4, f"Getting file details for ID: {file_id}")
     
@@ -349,4 +338,4 @@ async def download_file(
 
 # Run the server
 if __name__ == "__main__":
-    asyncio.run(mcp.run_stdio())
+    asyncio.run(mcp.run())

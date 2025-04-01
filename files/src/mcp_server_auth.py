@@ -5,17 +5,16 @@ This module implements a Model Context Protocol (MCP) server that provides
 tools and resources for authentication with the Elastic Path API.
 """
 
-import os
-import json
 import asyncio
-import httpx
-from typing import Dict, Optional, Any
+import json
+import os
 from datetime import datetime, timedelta
+from typing import Any, Dict, Optional
 
+import httpx
 from dotenv import load_dotenv
-# Import MCP SDK components
 from mcp.server.fastmcp import FastMCP
-from mcp.server.fastmcp.server import Context, ToolArgs
+from mcp.server.fastmcp.server import Context
 
 # Load environment variables
 load_dotenv()
@@ -183,4 +182,4 @@ async def validate_token(
 
 # Run the server
 if __name__ == "__main__":
-    asyncio.run(mcp.run_stdio())
+    asyncio.run(mcp.run())
