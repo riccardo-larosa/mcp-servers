@@ -51,7 +51,7 @@ First build the server
 npm run build
 ```
 
-To run the server in development mode:
+To run the server and use the inspector in development mode:
 
 ```bash
 npx @modelcontextprotocol/inspector node build/index.js
