@@ -99,6 +99,26 @@ To run the server and use the inspector in development mode:
 npx @modelcontextprotocol/inspector node build/index.js
 ```
 
+## Deployment 
+To use it with Claude or other clients
+edit claude_desktop_config.json
+```json
+{
+  "mcpServers": {
+    "files": {
+      "command": "node",
+      "args": [
+        "/your-location/mcp-servers/files/build/index.js"
+      ],
+      "env": {
+        "EP_CLIENT_ID": "<id>",
+        "EP_CLIENT_SECRET": "<secret>",
+        "EP_BASE_URL": "https://useast.api.elasticpath.com or euwest"
+      }
+    }
+  }
+}
+```
 ## License
 
 MIT 
