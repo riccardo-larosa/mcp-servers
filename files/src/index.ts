@@ -56,9 +56,9 @@ class ElasticPathFilesMcpServer {
    */
   async start() {
     const transport = new StdioServerTransport();
-    console.log("Starting Elastic Path Files MCP server...");
+    // console.log("Starting Elastic Path Files MCP server...");
     await this.server.connect(transport);
-    console.log("Elastic Path Files MCP server started");
+    // console.log("Elastic Path Files MCP server started");
   }
 
   /**
@@ -451,9 +451,10 @@ async function main() {
     clientSecret: process.env.EP_CLIENT_SECRET || '',
   };
 
-  console.log('Config:', JSON.stringify(config, null, 2));
+  
   // Validate config
   if (!config.clientId || !config.clientSecret) {
+    console.error('Config:', JSON.stringify(config, null, 2));
     console.error('Error: EP_CLIENT_ID and EP_CLIENT_SECRET environment variables must be set');
     process.exit(1);
   }
