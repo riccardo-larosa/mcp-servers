@@ -107,30 +107,23 @@ CLIENT_SECRET=your-client-secret
 DISABLE_AUTH=False  # Set to True for development/testing
 ```
 
-## Integration with LLMs
-
-These MCP servers can be integrated with any LLM that supports the Model Context Protocol. For example:
-
-```python
-from mcp.client import Client, Context
-
-# Connect to both servers
-auth_client = Client("http://localhost:8000/auth")  # Authentication server
-files_client = Client("http://localhost:8001/files")  # Files server
-
-# Get a token
-auth_ctx = Context()
-token_response = await auth_client.run_tool("get_client_credentials_token", {}, auth_ctx)
-token = token_response.result["access_token"]
-
-# Use the token with the files API
-files_ctx = Context(authorization=f"Bearer {token}")
-files_response = await files_client.run_tool("list_files", {"page_limit": 10}, files_ctx)
-
-# Process the results
-file_data = files_response.result
+Claude Desktop
+edit claude_desktop_config.json with
+```json
+{
+   "mcpServers": {
+      "auth": {
+         "command": "/Users/riccardo.larosa/.local/bin/uv",
+         "args": [
+         "--directory",
+         "/Users/riccardo.larosa/Projects/mcp-servers/files",
+         "run",
+         "src/mcp_server_auth.py"
+         ]
+      }
+   }
+}
 ```
-
 ## Benefits of Using MCP
 
 - **Standardized Interface** - Consistent API for LLMs
