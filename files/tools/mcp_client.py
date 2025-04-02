@@ -17,7 +17,8 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
 from dotenv import load_dotenv
-from mcp.client import Context, Client, Response
+from mcp import ClientSession, StdioServerParameters  
+from mcp.client.stdio import stdio_client
 
 # Load environment variables
 load_dotenv()
@@ -29,9 +30,12 @@ async def run_mcp_client_test():
     print("\n--- STEP 1: Obtain Authentication Token ---")
     
     # Connect to authentication server
-    from src.mcp_server_auth import mcp as auth_mcp
-    auth_client = Client(auth_mcp.tools)
-    auth_context = Context()
+    auth_server = StdioServerParameters(
+        id="auth_server",
+        command="python src/mcp_server_auth.py"
+    )
+    auth_client = await stdio_client(auth_server)
+    auth_context = {}  # Empty context dictionary
     
     try:
         # Get a token using client credentials
@@ -69,9 +73,12 @@ async def run_mcp_client_test():
         print("\n--- STEP 2: Use Token with Files API ---")
         
         # Connect to files server
-        from src.mcp_server import mcp as files_mcp
-        files_client = Client(files_mcp.tools)
-        files_context = Context(authorization=f"Bearer {token}")
+        files_server = StdioServerParameters(
+            id="files_server",
+            command="python src/mcp_server.py"
+        )
+        files_client = await stdio_client(files_server)
+        files_context = {"authorization": f"Bearer {token}"}
         
         # List files
         print("\n--- Listing Files ---")

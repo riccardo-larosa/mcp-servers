@@ -1,104 +1,140 @@
-# Files API Server
+# Elastic Path API - MCP Servers
 
-A FastAPI server implementation for the Elastic Path Files API.
+This project implements Model Context Protocol (MCP) servers for the Elastic Path API, allowing Large Language Models (LLMs) to interact with Elastic Path's services.
 
-## Features
+## MCP Servers
 
-- Upload files via multipart/form-data
-- Retrieve file metadata
-- List all files with filtering and pagination
-- Delete files
+The implementation includes two separate MCP servers:
 
-## Requirements
+1. **Authentication Server** (`src/mcp_server_auth.py`)
+   - Handles authentication with Elastic Path
+   - Obtains and validates access tokens
+   - Implements token caching for performance
 
-- Python 3.9+
+2. **Files API Server** (`src/mcp_server.py`)
+   - Provides access to the Files API functionality
+   - Implements file listing, uploading, downloading, and deletion
+   - Uses tokens obtained from the Authentication Server
 
 ## Installation
 
-### Using uv (recommended)
+### Prerequisites
+
+- Python 3.9 or later
+- The MCP SDK
+
+### Install with uv (Recommended)
 
 ```bash
-uv pip install -e .
-```
+# Navigate to the project directory
+cd /path/to/files
 
-For development:
-```bash
+# Install MCP SDK with CLI support
+uv add "mcp[cli]"
+
+# Install project dependencies
 uv pip install -e ".[dev]"
 ```
 
-### Using pip
+## Running the MCP Servers
+
+You can run both servers simultaneously (in separate terminals):
 
 ```bash
-pip install -e .
+# Run the Authentication Server
+python src/mcp_server_auth.py
+
+# Run the Files API Server
+python src/mcp_server.py
 ```
 
-For development:
+Alternatively, use the MCP CLI:
+
 ```bash
-pip install -e ".[dev]"
+mcp run src.mcp_server_auth
+mcp run src.mcp_server
 ```
+
+## Available MCP Tools and Resources
+
+### Authentication Server
+
+**Tools:**
+- `get_client_credentials_token` - Obtain an access token using client credentials
+- `validate_token` - Check if a token is valid
+
+**Resources:**
+- `elastic-path://auth/info` - Get authentication configuration information
+
+### Files API Server
+
+**Tools:**
+- `list_files` - List all files with filtering and pagination
+- `upload_file` - Upload a new file
+- `delete_file` - Delete a file
+- `download_file` - Download a file's content
+
+**Resources:**
+- `elastic-path://files` - List all files (readonly)
+- `elastic-path://files/{file_id}` - Get file details (readonly)
+
+## Testing
+
+Use the provided MCP client script to test both servers:
+
+```bash
+python tools/mcp_client.py
+```
+
+This script demonstrates how to:
+1. Connect to the Authentication Server to obtain a token
+2. Validate the token
+3. Use the token with the Files API Server
+4. List files from Elastic Path
 
 ## Configuration
 
-Copy the `.env.example` file to `.env` and configure as needed:
+Configure the servers using environment variables in a `.env` file:
 
-```bash
-cp .env.example .env
+```
+# API Configuration
+BASE_URL=https://euwest.api.elasticpath.com
+API_VERSION=v2
+
+# Authentication
+CLIENT_ID=your-client-id
+CLIENT_SECRET=your-client-secret
+DISABLE_AUTH=False  # Set to True for development/testing
 ```
 
-Important configuration options:
-- `BASE_URL`: Set to one of the Elastic Path API URLs (euwest or useast)
-- `DEBUG`: Set to True for development, False for production
-- `FILE_STORAGE_PATH`: Directory to store uploaded files
-- `MAX_FILE_SIZE`: Maximum allowed file size in bytes (default 8MB)
+## Integration with LLMs
 
-Authentication settings:
-- `CLIENT_ID`: Your Elastic Path application client ID
-- `CLIENT_SECRET`: Your Elastic Path application client secret
-- `DISABLE_AUTH`: Set to False in production to enforce Bearer token authentication
+These MCP servers can be integrated with any LLM that supports the Model Context Protocol. For example:
 
-## Running the server
+```python
+from mcp.client import Client, Context
 
-```bash
-# Using the provided run script
-python run.py
+# Connect to both servers
+auth_client = Client("http://localhost:8000/auth")  # Authentication server
+files_client = Client("http://localhost:8001/files")  # Files server
 
-# Or directly with uvicorn
-uvicorn src.main:app --reload
+# Get a token
+auth_ctx = Context()
+token_response = await auth_client.run_tool("get_client_credentials_token", {}, auth_ctx)
+token = token_response.result["access_token"]
+
+# Use the token with the files API
+files_ctx = Context(authorization=f"Bearer {token}")
+files_response = await files_client.run_tool("list_files", {"page_limit": 10}, files_ctx)
+
+# Process the results
+file_data = files_response.result
 ```
 
-## API Documentation
+## Benefits of Using MCP
 
-Once the server is running, visit:
-- http://localhost:8000/docs - Swagger UI
-- http://localhost:8000/redoc - ReDoc
-
-## Authentication
-
-The MCP server acts as a proxy and passes your Elastic Path access token directly to the Files API. To make authenticated requests:
-
-```bash
-# Using curl with your Elastic Path token
-curl -X GET "http://localhost:8000/v2/files" -H "Authorization: Bearer your-elastic-path-token"
-```
-
-Authentication options:
-1. **Direct Token Pass-through**: Your client provides a valid Elastic Path token which is passed to the Files API
-2. **Server-managed Tokens**: For development/testing, the server can obtain tokens automatically
-
-For development, you can set `DISABLE_AUTH=True` in your .env file to bypass authentication checks.
-In production, set this to `False` to ensure all requests have valid tokens.
-
-To configure server-managed tokens (useful for testing):
-- Set `CLIENT_ID` and `CLIENT_SECRET` in your .env file
-- These credentials will be used to obtain tokens when needed
-
-For applications, it's generally better to obtain tokens directly from Elastic Path's authentication service and pass them through this MCP server.
-
-## Deployment
-
-The project includes Docker support:
-
-```bash
-# Build and run with docker-compose
-docker-compose up -d
-```
+- **Standardized Interface** - Consistent API for LLMs
+- **Progress Tracking** - Real-time updates during tool execution
+- **Context Management** - Maintain state across operations
+- **Type Safety** - Typed interfaces for better reliability
+- **Separation of Concerns** - Authentication and API operations are decoupled
