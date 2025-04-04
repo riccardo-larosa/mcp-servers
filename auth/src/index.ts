@@ -35,7 +35,7 @@ server.tool(
         client_id: args.client_id,
         ...(args.client_secret && { client_secret: args.client_secret }),
         grant_type: args.grant_type,
-      }),
+      }).toString(),
     });
 
     if (!response.ok) {
@@ -43,7 +43,12 @@ server.tool(
     }
 
     const data = await response.json();
-    return data;
+    return {
+      content: [{
+        type: "text",
+        text: JSON.stringify(data, null, 2)
+      }]
+    };
   }
 );
 
