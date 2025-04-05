@@ -1,6 +1,6 @@
 # Elastic Path Files MCP Server
 
-This server implements a Model Context Protocol (MCP) interface for the Elastic Path Files API, allowing AI assistants to upload, retrieve, and manage files through a standardized interface.
+This server implements a Model Context Protocol (MCP) interface for the Elastic Path Files API, allowing AI assistants to upload, retrieve, and manage files through a standardized interface. It uses this following [Files Open API spec](https://elasticpath.dev/assets/openapispecs/files/files.yaml)
 
 ## Features
 
