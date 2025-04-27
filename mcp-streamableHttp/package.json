@@ -1,0 +1,27 @@
+{
+  "name": "mcp-streamablehttp",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start:server": "node build/server.js",
+    "start:client": "node build/client.js",
+    "build": "tsc -b",
+    "dev": "tsc-watch --onSuccess \"node build/server.js\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.10.2",
+    "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.1",
+    "@types/node": "^22.15.2",
+    "tsc-watch": "^6.2.1",
+    "typescript": "^5.8.3"
+  }
+}
