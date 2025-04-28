@@ -6,10 +6,9 @@
   "scripts": {
     "test": "vitest run",
     "coverage": "vitest run --coverage",
-    "start:server": "node build/server.js",
     "start:client": "node build/client.js",
     "build": "tsc -b",
-    "dev": "tsc-watch --onSuccess \"node build/server.js\""
+    "dev": "tsc-watch --onSuccess \"node build/index.js\""
   },
   "keywords": [],
   "author": "",
