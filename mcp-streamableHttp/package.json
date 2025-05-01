@@ -6,9 +6,10 @@
   "scripts": {
     "test": "vitest run",
     "coverage": "vitest run --coverage",
-    "start:simpleClient": "node build/simpleStreamableHttpClient.js",
+    "start:simpleClient": "node build/client/simpleStreamableHttpClient.js",
     "build": "tsc -b",
-    "dev": "tsc-watch --onSuccess \"node build/index.js\""
+    "dev:express": "tsc-watch --onSuccess \"node build/express-index.js\"",
+    "dev:hono": "tsc-watch --onSuccess \"node build/hono-index.js\""
   },
   "keywords": [],
   "author": "Riccardo La Rosa <rlarosa@gmail.com>",

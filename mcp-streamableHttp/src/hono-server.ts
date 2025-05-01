@@ -11,11 +11,9 @@ import { InitializeRequestSchema, JSONRPCError } from "@modelcontextprotocol/sdk
 import { toReqRes, toFetchResponse } from 'fetch-to-node';
 
 // Import server configuration constants
-// Removed: import { SERVER_NAME, SERVER_VERSION } from './index.js';
+import { SERVER_NAME, SERVER_VERSION } from './hono-index.js';
 
 // Constants
-const SERVER_NAME = 'MCP Hono Server'; // Placeholder
-const SERVER_VERSION = '0.1.0'; // Placeholder
 const SESSION_ID_HEADER_NAME = "mcp-session-id";
 const JSON_RPC = "2.0";
 
