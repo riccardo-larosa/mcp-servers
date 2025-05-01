@@ -1,4 +1,4 @@
-import app from './server.js'; // Import the configured app (default export)
+import app from './express-server.js'; // Import the configured app (default export)
 
 const PORT = process.env.PORT || 3000; // Use environment variable or default
 

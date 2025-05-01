@@ -35,7 +35,7 @@ describe('Bare Minimum MCP Server API Tests', () => {
     vi.clearAllMocks();
 
     // Import the app instance
-    const serverModule = await import('../src/server');
+    const serverModule = await import('../src/express-server');
     app = serverModule.default;
   });
 
