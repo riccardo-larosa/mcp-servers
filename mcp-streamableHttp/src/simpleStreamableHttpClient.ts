@@ -311,7 +311,7 @@ async function listTools(): Promise<void> {
       console.log('  No tools available');
     } else {
       for (const tool of toolsResult.tools) {
-        console.log(`  - ${tool.name}: ${tool.description}`);
+        console.log(`  - ${tool.name}`); //: ${tool.description}
       }
     }
   } catch (error) {
