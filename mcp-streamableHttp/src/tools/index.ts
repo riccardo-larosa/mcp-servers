@@ -12,4 +12,3 @@ export interface McpToolDefinition {
   securityRequirements: any[];
 }
 
-export * from "./files.js";

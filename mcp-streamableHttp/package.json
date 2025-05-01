@@ -8,8 +8,8 @@
     "coverage": "vitest run --coverage",
     "start:simpleClient": "node build/client/simpleStreamableHttpClient.js",
     "build": "tsc -b",
-    "dev:express": "tsc-watch --onSuccess \"node build/express-index.js\"",
-    "dev:hono": "tsc-watch --onSuccess \"node build/hono-index.js\""
+    "dev:express": "tsc-watch --onSuccess \"node build/server/express-index.js\"",
+    "dev:hono": "tsc-watch --onSuccess \"node build/server/hono-index.js\""
   },
   "keywords": [],
   "author": "Riccardo La Rosa <rlarosa@gmail.com>",
@@ -25,7 +25,10 @@
     "json-schema-to-zod": "^2.6.1",
     "uuid": "^11.1.0",
     "zod": "^3.24.3",
-    "express": "^5.1.0"
+    "express": "^5.1.0",
+    "openapi-types": "^12.1.3",
+    "@apidevtools/swagger-parser": "^10.1.1",
+    "commander": "^13.1.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.1",

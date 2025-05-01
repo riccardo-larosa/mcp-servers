@@ -67,11 +67,26 @@ The server manages client sessions using the `mcp-session-id` HTTP header.
 2.  Subsequent requests (POST, GET, DELETE) from the client **must** include the assigned `mcp-session-id` header for the server to route the request to the correct transport instance.
 3.  The `DELETE /mcp` request terminates the session associated with the provided `mcp-session-id`.
 
-## Example Tool
+## Tools
 
-*   **`echo`**: A simple tool that takes a `message` argument and returns it prefixed with "You said: ". 
+To add tools to the server: 
+```bash
+ node build/parser/index.js -i /directory/files/OpenAPISpec.yaml -n files
+ ```
+This will create a files.ts module in /src/tools and when the server starts up it will be registered
+
+## Run the Server
+```bash
+npm run dev:hono
+```
 
 ## Running the Client
+
+Use the MCP inspector 
+```bash
+npx @modelcontextprotocol/inspector
+```
+or you can use a CLI
 
 ```bash
 npm run start:simpleClient
@@ -82,6 +97,4 @@ You can use the commands shown in this client to interact with the server, like
 
 ```bash
 list-tools
-# or
-call-tool echo {"message":"hello"}
 ```
