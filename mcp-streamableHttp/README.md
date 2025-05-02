@@ -82,7 +82,7 @@ npm run dev:hono
 
 ## Running the Client
 
-Use the MCP inspector 
+Use the [MCP inspector](https://github.com/modelcontextprotocol/inspector) 
 ```bash
 npx @modelcontextprotocol/inspector
 ```

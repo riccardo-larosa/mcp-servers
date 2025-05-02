@@ -86,7 +86,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
     console.error(`Error: Unknown tool requested: ${toolName}`);
     return { content: [{ type: "text", text: `Error: Unknown tool requested: ${toolName}` }] };
   }
-  // console.error(`Executing tool "${toolName}" with arguments ${JSON.stringify(toolArgs)} and securitySchemes ${JSON.stringify(securitySchemes)}`);
+  console.log(`Executing tool "${toolName}" with arguments ${JSON.stringify(toolArgs)} and securitySchemes ${JSON.stringify(securitySchemes)}`);
   return await executeApiTool(toolName, toolDefinition, toolArgs ?? {}, securitySchemes);
 });
 

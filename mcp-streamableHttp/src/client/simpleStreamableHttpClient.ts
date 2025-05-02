@@ -197,7 +197,12 @@ async function connect(url?: string): Promise<void> {
     transport = new StreamableHTTPClientTransport(
       new URL(serverUrl),
       {
-        sessionId: sessionId
+        sessionId: sessionId,
+        // requestInit: {
+        //   headers: {
+        //     'Authorization': 'Bearer ' + process.env.MCP_API_KEY
+        //   }
+        // }
       }
     );
 
