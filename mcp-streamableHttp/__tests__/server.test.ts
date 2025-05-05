@@ -7,6 +7,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
 import { randomUUID } from 'node:crypto';
+import { validateBearerToken, registerToken } from '../src/server/auth.js';
 
 // --- Extremely Basic Mocks ---
 vi.mock('node:crypto', () => ({
@@ -15,6 +16,12 @@ vi.mock('node:crypto', () => ({
 
 vi.mock('@modelcontextprotocol/sdk/types.js', () => ({
   isInitializeRequest: vi.fn(),
+}));
+
+vi.mock('../src/server/auth.js', () => ({
+  validateBearerToken: vi.fn(),
+  registerToken: vi.fn(),
+  getBearerToken: vi.fn(),
 }));
 
 // Mock constructors only - no method mocks needed for this level
@@ -35,7 +42,7 @@ describe('Bare Minimum MCP Server API Tests', () => {
     vi.clearAllMocks();
 
     // Import the app instance
-    const serverModule = await import('../src/express-server');
+    const serverModule = await import('../src/server/express-server.js');
     app = serverModule.default;
   });
 
@@ -96,5 +103,24 @@ describe('Bare Minimum MCP Server API Tests', () => {
        expect(response.text).toContain('Invalid or missing session ID');
        // No need to check mocks here, just the response
    });
+   
+   it('POST /mcp - should handle bearer token authorization', async () => {
+     // Arrange: Mock conditions for a non-initialization request with a session ID
+     const sessionId = 'auth-test-session';
+     const mockRpcRequest = { jsonrpc: '2.0', method: 'callTool', id: 3, params: { name: 'echo', arguments: { message: 'test' } } };
+     // Ensure isInitializeRequest returns false for this path
+     (isInitializeRequest as any).mockReturnValue(false);
+     (validateBearerToken as any).mockReturnValue(true);
 
-}); 
+     // Act: Send request with a session ID and bearer token
+     await request(app)
+       .post('/mcp')
+       .set('mcp-session-id', sessionId)
+       .set('Authorization', 'Bearer valid-test-token')
+       .send(mockRpcRequest)
+       .catch(err => console.error("Ignoring request error in auth test:", err)); // Ignore errors
+
+     // Assert: Authorization validation should be called
+     expect(validateBearerToken).toHaveBeenCalled();
+   });
+});    

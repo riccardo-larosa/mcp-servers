@@ -14,7 +14,7 @@ import {
 import { setupStreamableHttpServer } from "./hono-server.js";
 import { McpToolDefinition } from "../tools/index.js";
 import { loadToolsFromDirectory } from "./dynamicToolLoader.js";
-
+import { getBearerToken } from "./auth.js";
 
 import dotenv from 'dotenv';
 dotenv.config();
@@ -79,7 +79,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
   return { tools: toolsForClient };
 });
 
-server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest): Promise<CallToolResult> => {
+server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest, context?: any): Promise<CallToolResult> => {
   const { name: toolName, arguments: toolArgs } = request.params;
   const toolDefinition = toolDefinitionMap.get(toolName);
   if (!toolDefinition) {
@@ -87,7 +87,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
     return { content: [{ type: "text", text: `Error: Unknown tool requested: ${toolName}` }] };
   }
   console.log(`Executing tool "${toolName}" with arguments ${JSON.stringify(toolArgs)} and securitySchemes ${JSON.stringify(securitySchemes)}`);
-  return await executeApiTool(toolName, toolDefinition, toolArgs ?? {}, securitySchemes);
+  return await executeApiTool(toolName, toolDefinition, toolArgs ?? {}, securitySchemes, context?.req);
 });
 
 
@@ -215,7 +215,8 @@ async function executeApiTool(
   toolName: string,
   definition: McpToolDefinition,
   toolArgs: JsonObject,
-  allSecuritySchemes: Record<string, any>
+  allSecuritySchemes: Record<string, any>,
+  req?: Request | { headers: Record<string, string | string[] | undefined> }
 ): Promise<CallToolResult> {
   try {
     // Validate arguments against the input schema
@@ -351,7 +352,23 @@ async function executeApiTool(
         // HTTP security (Bearer or Basic)
         else if (scheme?.type === 'http') {
           if (scheme.scheme?.toLowerCase() === 'bearer') {
-            const token = process.env[`BEARER_TOKEN_${schemeName.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase()}`];
+            // Get token from the request context if available
+            // If no token in the request, fallback to environment variable for backward compatibility
+            let requestToken = null;
+            if (req) {
+              // Convert Headers to Record<string, string | string[] | undefined> if needed
+              const headers: Record<string, string | string[] | undefined> = {};
+              if (req.headers instanceof Headers) {
+                req.headers.forEach((value, key) => {
+                  headers[key] = value;
+                });
+              } else {
+                Object.assign(headers, req.headers);
+              }
+              requestToken = getBearerToken({ headers });
+            }
+            const token = requestToken || process.env[`BEARER_TOKEN_${schemeName.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase()}`];
+            
             if (token) {
               headers['authorization'] = `Bearer ${token}`;
               console.error(`Applied Bearer token for '${schemeName}'`);

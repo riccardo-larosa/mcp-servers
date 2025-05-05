@@ -31,6 +31,7 @@ let transport: StreamableHTTPClientTransport | null = null;
 let serverUrl = 'http://localhost:3000/mcp';
 let notificationsToolLastEventId: string | undefined = undefined;
 let sessionId: string | undefined = undefined;
+let bearerToken: string | undefined = process.env.MCP_API_KEY || 'test-token';
 
 async function main(): Promise<void> {
   console.log('MCP Interactive Client');
@@ -60,6 +61,7 @@ function printHelp(): void {
   console.log('  list-resources             - List available resources');
   console.log('  help                       - Show this help');
   console.log('  quit                       - Exit the program');
+  console.log('  set-token <token>          - Set the bearer token for authentication');
 }
 
 function commandLoop(): void {
@@ -148,6 +150,15 @@ function commandLoop(): void {
           await listResources();
           break;
 
+        case 'set-token':
+          if (args.length < 2) {
+            console.log('Usage: set-token <token>');
+          } else {
+            bearerToken = args[1];
+            console.log(`Bearer token set to: ${bearerToken}`);
+          }
+          break;
+          
         case 'help':
           printHelp();
           break;
@@ -198,11 +209,11 @@ async function connect(url?: string): Promise<void> {
       new URL(serverUrl),
       {
         sessionId: sessionId,
-        // requestInit: {
-        //   headers: {
-        //     'Authorization': 'Bearer ' + process.env.MCP_API_KEY
-        //   }
-        // }
+        requestInit: {
+          headers: {
+            'Authorization': 'Bearer ' + (bearerToken || 'test-token')
+          }
+        }
       }
     );
 
