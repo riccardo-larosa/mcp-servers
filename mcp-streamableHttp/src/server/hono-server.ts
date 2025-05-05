@@ -9,6 +9,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { InitializeRequestSchema, JSONRPCError } from "@modelcontextprotocol/sdk/types.js";
 import { toReqRes, toFetchResponse } from 'fetch-to-node';
+import { validateBearerToken, getBearerToken } from "./auth.js";
 
 // Import server configuration constants
 import { SERVER_NAME, SERVER_VERSION } from './hono-index.js';
@@ -52,6 +53,14 @@ class MCPStreamableHttpServer {
       
       // Convert Fetch Request to Node.js req/res
       const { req, res } = toReqRes(c.req.raw);
+      
+      if (sessionId && !this.isInitializeRequest(body) && !validateBearerToken(req)) {
+        // Invalid token
+        return c.json(
+          this.createErrorResponse("Unauthorized: Invalid or missing bearer token", -32001),
+          401
+        );
+      }
       
       // Reuse existing transport if we have a session ID
       if (sessionId && this.transports[sessionId]) {
@@ -127,12 +136,14 @@ class MCPStreamableHttpServer {
   
   /**
    * Create a JSON-RPC error response
+   * @param message Error message
+   * @param code Error code (default: -32000)
    */
-  private createErrorResponse(message: string): JSONRPCError {
+  private createErrorResponse(message: string, code: number = -32000): JSONRPCError {
     return {
       jsonrpc: JSON_RPC,
       error: {
-        code: -32000,
+        code: code,
         message: message,
       },
       id: uuid(),

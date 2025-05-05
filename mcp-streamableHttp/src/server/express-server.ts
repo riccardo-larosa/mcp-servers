@@ -4,6 +4,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js"
 import { z } from "zod";
+import { validateBearerToken, getBearerToken } from "./auth.js";
 
 
 
@@ -18,6 +19,19 @@ app.post('/mcp', async (req, res) => {
   // Check for existing session ID
   const sessionId = req.headers['mcp-session-id'] as string | undefined;
   let transport: StreamableHTTPServerTransport;
+
+  if (sessionId && !isInitializeRequest(req.body) && !validateBearerToken(req)) {
+    // Invalid token
+    res.status(401).json({
+      jsonrpc: '2.0',
+      error: {
+        code: -32001,
+        message: 'Unauthorized: Invalid or missing bearer token',
+      },
+      id: null,
+    });
+    return;
+  }
 
   if (sessionId && transports[sessionId]) {
     // Reuse existing transport
