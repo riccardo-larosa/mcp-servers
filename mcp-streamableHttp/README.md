@@ -41,13 +41,7 @@ npm run build
 
 This will output the compiled files to a `build` directory.
 
-## Running the Server
 
-After building the code, you can start the server:
-
-```bash
-npm run dev
-```
 
 By default, the server listens on port 3000 and exposes the MCP endpoint at `/mcp`.
 
