@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+// import { fileURLToPath } from 'node:url';
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { z, ZodError } from 'zod';
 import { jsonSchemaToZod } from 'json-schema-to-zod';
@@ -12,8 +12,8 @@ import {
   type CallToolRequest
 } from "@modelcontextprotocol/sdk/types.js";
 import { setupStreamableHttpServer } from "./hono-server.js";
-import { McpToolDefinition } from "../tools/index.js";
-import { loadToolsFromDirectory } from "./dynamicToolLoader.js";
+import { McpToolDefinition } from "./tools/index.js";
+import { coursesToolsMap } from './tools/courses.js';
 import { getBearerToken } from "./auth.js";
 
 import dotenv from 'dotenv';
@@ -40,21 +40,10 @@ const server = new Server(
   { capabilities: { tools: {} } }
 );
 
-// const toolDefinitionMap: Map<string, McpToolDefinition> = new Map([...filesToolsMap, ...currenciesToolsMap]);
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Load tools dynamically
-const filesToolsMap = await loadToolsFromDirectory(path.resolve(__dirname, '../tools'));
-
-// Assuming currenciesToolsMap is loaded differently (e.g., static import)
-// If currenciesTools also come from files, you could merge loaders
-// import { currenciesToolsMap } from '../currencies/index.js'; // Example
-
 // Combine dynamically loaded tools with others
 const toolDefinitionMap: Map<string, McpToolDefinition> = new Map([
-  ...filesToolsMap,
-  // ...currenciesToolsMap // Uncomment if you still need this
+  ...coursesToolsMap,
+  // add more tools here
 ]);
 
 console.log('Final combined tool map:', Array.from(toolDefinitionMap.keys()));
@@ -106,101 +95,6 @@ interface TokenCacheEntry {
 declare global {
   var __oauthTokenCache: Record<string, TokenCacheEntry> | undefined;
 }
-
-/**
-* Acquires an OAuth2 token using client credentials flow
-* 
-* @param schemeName Name of the security scheme
-* @param scheme OAuth2 security scheme
-* @returns Acquired token or null if unable to acquire
-*/
-async function acquireOAuth2Token(schemeName: string, scheme: any): Promise<string | null | undefined> {
-  try {
-    // Check if we have the necessary credentials
-    const clientId = process.env[`OAUTH_CLIENT_ID_SCHEMENAME`];
-    const clientSecret = process.env[`OAUTH_CLIENT_SECRET_SCHEMENAME`];
-    const scopes = process.env[`OAUTH_SCOPES_SCHEMENAME`];
-
-    if (!clientId || !clientSecret) {
-      console.error(`Missing client credentials for OAuth2 scheme '${schemeName}'`);
-      return null;
-    }
-
-    // Initialize token cache if needed
-    if (typeof global.__oauthTokenCache === 'undefined') {
-      global.__oauthTokenCache = {};
-    }
-
-    // Check if we have a cached token
-    const cacheKey = `${schemeName}_${clientId}`;
-    const cachedToken = global.__oauthTokenCache[cacheKey];
-    const now = Date.now();
-
-    if (cachedToken && cachedToken.expiresAt > now) {
-      console.error(`Using cached OAuth2 token for '${schemeName}' (expires in ${Math.floor((cachedToken.expiresAt - now) / 1000)} seconds)`);
-      return cachedToken.token;
-    }
-
-    // Determine token URL based on flow type
-    let tokenUrl = '';
-    if (scheme.flows?.clientCredentials?.tokenUrl) {
-      tokenUrl = scheme.flows.clientCredentials.tokenUrl;
-      console.error(`Using client credentials flow for '${schemeName}'`);
-    } else if (scheme.flows?.password?.tokenUrl) {
-      tokenUrl = scheme.flows.password.tokenUrl;
-      console.error(`Using password flow for '${schemeName}'`);
-    } else {
-      console.error(`No supported OAuth2 flow found for '${schemeName}'`);
-      return null;
-    }
-
-    // Prepare the token request
-    let formData = new URLSearchParams();
-    formData.append('grant_type', 'client_credentials');
-
-    // Add scopes if specified
-    if (scopes) {
-      formData.append('scope', scopes);
-    }
-
-    console.error(`Requesting OAuth2 token from ${tokenUrl}`);
-
-    // Make the token request
-    const response = await axios({
-      method: 'POST',
-      url: tokenUrl,
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`
-      },
-      data: formData.toString()
-    });
-
-    // Process the response
-    if (response.data?.access_token) {
-      const token = response.data.access_token;
-      const expiresIn = response.data.expires_in || 3600; // Default to 1 hour
-
-      // Cache the token
-      global.__oauthTokenCache[cacheKey] = {
-        token,
-        expiresAt: now + (expiresIn * 1000) - 60000 // Expire 1 minute early
-      };
-
-      console.error(`Successfully acquired OAuth2 token for '${schemeName}' (expires in ${expiresIn} seconds)`);
-      return token;
-    } else {
-      console.error(`Failed to acquire OAuth2 token for '${schemeName}': No access_token in response`);
-      return null;
-    }
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error(`Error acquiring OAuth2 token for '${schemeName}':`, errorMessage);
-    return null;
-  }
-}
-
-
 
 /**
  * Executes an API tool with the provided arguments
@@ -296,30 +190,6 @@ async function executeApiTool(
           }
         }
 
-        // OAuth2 security
-        if (scheme.type === 'oauth2') {
-          // Check for pre-existing token
-          if (process.env[`OAUTH_TOKEN_${schemeName.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase()}`]) {
-            return true;
-          }
-
-          // Check for client credentials for auto-acquisition
-          if (process.env[`OAUTH_CLIENT_ID_${schemeName.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase()}`] &&
-            process.env[`OAUTH_CLIENT_SECRET_${schemeName.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase()}`]) {
-            // Verify we have a supported flow
-            if (scheme.flows?.clientCredentials || scheme.flows?.password) {
-              return true;
-            }
-          }
-
-          return false;
-        }
-
-        // OpenID Connect
-        if (scheme.type === 'openIdConnect') {
-          return !!process.env[`OPENID_TOKEN_${schemeName.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase()}`];
-        }
-
         return false;
       });
     });
@@ -374,52 +244,9 @@ async function executeApiTool(
               console.error(`Applied Bearer token for '${schemeName}'`);
             }
           }
-          else if (scheme.scheme?.toLowerCase() === 'basic') {
-            const username = process.env[`BASIC_USERNAME_${schemeName.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase()}`];
-            const password = process.env[`BASIC_PASSWORD_${schemeName.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase()}`];
-            if (username && password) {
-              headers['authorization'] = `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
-              console.error(`Applied Basic authentication for '${schemeName}'`);
-            }
-          }
+          
         }
-        // OAuth2 security
-        else if (scheme?.type === 'oauth2') {
-          // First try to use a pre-provided token
-          let token = process.env[`OAUTH_TOKEN_${schemeName.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase()}`];
-
-          // If no token but we have client credentials, try to acquire a token
-          if (!token && (scheme.flows?.clientCredentials || scheme.flows?.password)) {
-            console.error(`Attempting to acquire OAuth token for '${schemeName}'`);
-            token = (await acquireOAuth2Token(schemeName, scheme)) ?? '';
-          }
-
-          // Apply token if available
-          if (token) {
-            headers['authorization'] = `Bearer ${token}`;
-            console.error(`Applied OAuth2 token for '${schemeName}'`);
-
-            // List the scopes that were requested, if any
-            const scopes = scopesArray as string[];
-            if (scopes && scopes.length > 0) {
-              console.error(`Requested scopes: ${scopes.join(', ')}`);
-            }
-          }
-        }
-        // OpenID Connect
-        else if (scheme?.type === 'openIdConnect') {
-          const token = process.env[`OPENID_TOKEN_${schemeName.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase()}`];
-          if (token) {
-            headers['authorization'] = `Bearer ${token}`;
-            console.error(`Applied OpenID Connect token for '${schemeName}'`);
-
-            // List the scopes that were requested, if any
-            const scopes = scopesArray as string[];
-            if (scopes && scopes.length > 0) {
-              console.error(`Requested scopes: ${scopes.join(', ')}`);
-            }
-          }
-        }
+        
       }
     }
     // Log warning if security is required but not available
