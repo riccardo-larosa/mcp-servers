@@ -14,9 +14,12 @@ import {
 import { setupStreamableHttpServer } from "./hono-server.js";
 import { McpToolDefinition } from "./tools/index.js";
 import { coursesToolsMap } from './tools/courses.js';
-import { getBearerToken } from "./auth.js";
+import { classroomsToolsMap } from './tools/classrooms.js';
+
+// import { getBearerToken } from "./auth.js";
 
 import dotenv from 'dotenv';
+
 dotenv.config();
 
 /**
@@ -30,7 +33,7 @@ type JsonObject = Record<string, any>;
  */
 export const SERVER_NAME = "docebo-mcp-server";
 export const SERVER_VERSION = "0.1.0";
-export const API_BASE_URL = "https://api.docebo.com";
+export const API_BASE_URL = "https://riccardo-lr-test.docebosaas.com/";
 
 /**
  * MCP Server instance
@@ -43,10 +46,11 @@ const server = new Server(
 // Combine dynamically loaded tools with others
 const toolDefinitionMap: Map<string, McpToolDefinition> = new Map([
   ...coursesToolsMap,
+  ...classroomsToolsMap,
   // add more tools here
 ]);
 
-console.log('Final combined tool map:', Array.from(toolDefinitionMap.keys()));
+// console.error('Final combined tool map:', Array.from(toolDefinitionMap.keys()));
 
 
 const securitySchemes = {
@@ -76,7 +80,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest,
     return { content: [{ type: "text", text: `Error: Unknown tool requested: ${toolName}` }] };
   }
   console.log(`Executing tool "${toolName}" with arguments ${JSON.stringify(toolArgs)} and securitySchemes ${JSON.stringify(securitySchemes)}`);
-  return await executeApiTool(toolName, toolDefinition, toolArgs ?? {}, securitySchemes, context?.req);
+  return await executeApiTool(toolName, toolDefinition, toolArgs ?? {}, securitySchemes, context?.bearerToken);
 });
 
 
@@ -110,7 +114,7 @@ async function executeApiTool(
   definition: McpToolDefinition,
   toolArgs: JsonObject,
   allSecuritySchemes: Record<string, any>,
-  req?: Request | { headers: Record<string, string | string[] | undefined> }
+  bearerToken?: string
 ): Promise<CallToolResult> {
   try {
     // Validate arguments against the input schema
@@ -182,6 +186,7 @@ async function executeApiTool(
         // HTTP security (basic, bearer)
         if (scheme.type === 'http') {
           if (scheme.scheme?.toLowerCase() === 'bearer') {
+            console.log(`Checking BEARER_TOKEN_${schemeName.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase()}`);
             return !!process.env[`BEARER_TOKEN_${schemeName.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase()}`];
           }
           else if (scheme.scheme?.toLowerCase() === 'basic') {
@@ -222,22 +227,7 @@ async function executeApiTool(
         // HTTP security (Bearer or Basic)
         else if (scheme?.type === 'http') {
           if (scheme.scheme?.toLowerCase() === 'bearer') {
-            // Get token from the request context if available
-            // If no token in the request, fallback to environment variable for backward compatibility
-            let requestToken = null;
-            if (req) {
-              // Convert Headers to Record<string, string | string[] | undefined> if needed
-              const headers: Record<string, string | string[] | undefined> = {};
-              if (req.headers instanceof Headers) {
-                req.headers.forEach((value, key) => {
-                  headers[key] = value;
-                });
-              } else {
-                Object.assign(headers, req.headers);
-              }
-              requestToken = getBearerToken({ headers });
-            }
-            const token = requestToken || process.env[`BEARER_TOKEN_${schemeName.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase()}`];
+            const token = bearerToken || process.env[`BEARER_TOKEN_${schemeName.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase()}`];
             
             if (token) {
               headers['authorization'] = `Bearer ${token}`;

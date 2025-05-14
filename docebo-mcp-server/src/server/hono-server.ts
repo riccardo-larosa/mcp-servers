@@ -9,7 +9,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { InitializeRequestSchema, JSONRPCError } from "@modelcontextprotocol/sdk/types.js";
 import { toReqRes, toFetchResponse } from 'fetch-to-node';
-import { validateBearerToken, getBearerToken } from "./auth.js";
+// import { validateBearerToken, getBearerToken } from "./auth.js";
 
 // Import server configuration constants
 import { SERVER_NAME, SERVER_VERSION } from './hono-index.js';
@@ -25,6 +25,7 @@ class MCPStreamableHttpServer {
   server: Server;
   // Store active transports by session ID
   transports: {[sessionId: string]: StreamableHTTPServerTransport} = {};
+  sessionTokens: {[sessionId: string]: string} = {};
   
   constructor(server: Server) {
     this.server = server;
@@ -53,14 +54,6 @@ class MCPStreamableHttpServer {
       
       // Convert Fetch Request to Node.js req/res
       const { req, res } = toReqRes(c.req.raw);
-      
-      if (sessionId && !this.isInitializeRequest(body) && !validateBearerToken(req)) {
-        // Invalid token
-        return c.json(
-          this.createErrorResponse("Unauthorized: Invalid or missing bearer token", -32001),
-          401
-        );
-      }
       
       // Reuse existing transport if we have a session ID
       if (sessionId && this.transports[sessionId]) {
@@ -206,9 +199,9 @@ export async function setupStreamableHttpServer(server: Server, port = 3000) {
       
       const __dirname = path.dirname(fileURLToPath(import.meta.url));
       const publicPath = path.join(__dirname, '..', 'public');
-      console.log(`Serving static file from ${publicPath}`);
+      // console.log(`Serving static file from ${publicPath}`);
       const fullPath = path.join(publicPath, filePath);
-      console.log(`Full path: ${fullPath}`);
+      // console.log(`Full path: ${fullPath}`);
       // Simple security check to prevent directory traversal
       if (!fullPath.startsWith(publicPath)) {
         return c.text('Forbidden', 403);
